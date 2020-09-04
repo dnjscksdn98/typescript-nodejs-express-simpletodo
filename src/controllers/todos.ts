@@ -1,14 +1,13 @@
 import { RequestHandler } from 'express';
 
-import { Todo } from '../models/todo';
+import getDatabase from '../database';
 
-const todos: Todo[] = [];
+const todos = getDatabase().getTodo();
 
-export const createTodo: RequestHandler = (req, res, next) => {
+export const createTodo: RequestHandler = async (req, res, next) => {
     const text = (req.body as { text: string }).text;
-    const newTodo = new Todo(Math.random().toString(), text);
 
-    todos.push(newTodo);
+    const newTodo = await todos.create({ text: text });
 
     res.status(201).json({
         message: 'created a new todo',
@@ -16,41 +15,46 @@ export const createTodo: RequestHandler = (req, res, next) => {
     });
 };
 
-export const getTodos: RequestHandler = (req, res, next) => {
+export const getTodos: RequestHandler = async (req, res, next) => {
+    const todoFindAll = await todos.findAll();
+    
     res.status(200).json({
-        todos: todos
+        todos: todoFindAll
     });
 };
 
-export const updateTodo: RequestHandler<{ id: string }> = (req, res, next) => {
+export const updateTodo: RequestHandler<{ id: number }> = async (req, res, next) => {
     const todoId = req.params.id;
 
     const updatedText = (req.body as { text: string}).text;
 
-    const todoIndex = todos.findIndex(todo => todo.id === todoId);
+    const todo = await todos.findOne({ where: { id: todoId }});
 
-    if (todoIndex < 0) {
+    if (!todo) {
         throw new Error('Could not find todo');
     }
 
-    todos[todoIndex] = new Todo(todos[todoIndex].id, updatedText);
+    await todos.update({ text: updatedText}, { where: { id: todoId }});
 
     res.status(200).json({
         message: 'successfully updated todo',
-        updatedTodo: todos[todoIndex]
+        updatedTodo: {
+            id: todoId,
+            text: updatedText
+        }
     });
 };
 
-export const deleteTodo: RequestHandler = (req, res, next) => {
+export const deleteTodo: RequestHandler<{ id: number }> = async (req, res, next) => {
     const todoId = req.params.id;
 
-    const todoIndex = todos.findIndex(todo => todo.id === todoId);
+    const todo = await todos.findOne({ where: { id: todoId }});
 
-    if (todoIndex < 0) {
+    if (!todo) {
         throw new Error('Could not find todo');
     }
 
-    todos.splice(todoIndex, 1);
+    await todos.destroy({ where: { id: todoId }});
 
     res.status(200).json({
         message: 'successfully deleted todo'

@@ -23,6 +23,20 @@ export const getTodos: RequestHandler = async (req, res, next) => {
     });
 };
 
+export const getTodo: RequestHandler<{ id: number }> = async (req, res, next) => {
+    const todoId = req.params.id;
+
+    const todo = await todos.findOne({ where: { id: todoId }});
+
+    if (!todo) {
+        throw new Error('Could not find todo');
+    }
+
+    res.status(200).json({
+        todo: todo
+    });
+};
+
 export const updateTodo: RequestHandler<{ id: number }> = async (req, res, next) => {
     const todoId = req.params.id;
 
